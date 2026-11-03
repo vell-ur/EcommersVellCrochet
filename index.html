@@ -38,14 +38,14 @@
 <div class="tools">
  <div><label for="q">Cari produk</label><input id="q" type="search" placeholder="Contoh: kucing, dompet, tas"></div>
  <div><label for="sortkey">Urutkan berdasarkan</label><select id="sortkey"><option value="">Bawaan (urutan awal)</option><option value="hargaA">Harga termurah</option><option value="hargaD">Harga termahal</option><option value="nama">Nama A–Z</option><option value="rating">Rating tertinggi</option></select></div>
- <div><label for="smode">Metode pencarian</label><select id="smode"><option value="linear">Linear Search</option><option value="binary">Binary Search (awalan nama)</option></select></div>
- <div><label for="salgo">Algoritma sorting</label><select id="salgo"><option value="bubble">Bubble Sort</option><option value="selection">Selection Sort</option><option value="insertion">Insertion Sort</option></select></div>
+ <div hidden><label for="smode">Metode pencarian</label><select id="smode"><option value="linear">Linear Search</option><option value="binary">Binary Search (awalan nama)</option></select></div>
+ <div hidden><label for="salgo">Algoritma sorting</label><select id="salgo"><option value="bubble">Bubble Sort</option><option value="selection">Selection Sort</option><option value="insertion">Insertion Sort</option></select></div>
 </div>
 <div class="fbar"><button class="btn" id="openF">☰ Filter (0)</button><button class="link" id="clearF" hidden>Hapus filter</button></div>
 <div class="chips" id="chips"></div>
 <div class="grid" id="grid"></div>
 
-<section class="blk">
+<section class="blk" hidden>
  <h2>Log sorting dan searching</h2>
  <p class="meta">Setiap perbandingan dan pertukaran dicatat. Log diperbarui saat kamu mengubah urutan atau mengetik pencarian.</p>
  <div class="two">
@@ -54,7 +54,7 @@
  </div>
 </section>
 
-<section class="blk">
+<section class="blk" hidden>
  <details class="dd">
   <summary><h2>Struct, array, dan pointer di balik toko ini</h2><span class="chev" aria-hidden="true">▾</span></summary>
   <div class="ddbody">

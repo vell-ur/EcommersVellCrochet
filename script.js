@@ -5,8 +5,8 @@ const STAT={1:[124,410],2:[98,340],3:[76,215],4:[41,118],5:[63,170],6:[34,96],7:
 const fmtN=n=>n>=1000?(n/1000).toFixed(1).replace(".",",").replace(",0","")+"rb":String(n);
 // Ulasan yang ditulis pembeli disimpan di browser (kunci "vc_reviews"). rstat = rating & jumlah ulasan gabungan (ulasan awal + ulasan pembeli)
 const revAll=()=>{try{const v=JSON.parse(localStorage.getItem("vc_reviews"));return Array.isArray(v)?v:[]}catch(e){return[]}};
-const rstat=o=>{const m=revAll().filter(r=>r.pid===o.id),n=o.ulasan+m.length;if(!n)return{n:0,avg:o.rating,m};return{n,avg:Math.round((o.rating*o.ulasan+m.reduce((t,r)=>t+r.s,0))/n*10)/10,m}};
-const rlabel=o=>{const r=rstat(o);return`${r.avg.toFixed(1)} (${r.n} ulasan)`};
+const rstat=o=>{const m=revAll().filter(r=>r.pid===o.id),n=o.ulasan+m.length;if(!n)return{n:0,avg:o.rating,m};const base=genStars(o).reduce((t,x)=>t+x,0),sum=base+m.reduce((t,r)=>t+r.s,0);return{n,avg:Math.round(sum/n*100)/100,m}};
+const rlabel=o=>{const r=rstat(o);return`${r.avg.toFixed(2)} (${r.n} ulasan)`};
 // ===== HEAP: alamat -> struct. POINTER = alamat (angka) =====
 const heap=new Map();
 const deref=p=>heap.get(p);              // *ptr
@@ -66,7 +66,7 @@ let kat="Semua",hasil=null,keranjang=[]; // keranjang: array of {ptr,qty}
 const FG=[["harga","Harga",["Semua","Di bawah Rp50.000","Rp50.000 – Rp100.000","Rp100.000 – Rp200.000","Di atas Rp200.000"]],["rating","Rating",["Semua","★ 4.5 ke atas","★ 4.8 ke atas"]],["stok","Stok",["Semua","Stok terbatas (maks. 10)"]]];
 const HR=[[0,Infinity],[0,49999],[50000,100000],[100001,200000],[200001,Infinity]],RT=[0,4.5,4.8];
 let F={harga:0,rating:0,stok:0};
-const passF=o=>o.harga>=HR[F.harga][0]&&o.harga<=HR[F.harga][1]&&o.rating>=RT[F.rating]&&(!F.stok||o.stok<=10);
+const passF=o=>o.harga>=HR[F.harga][0]&&o.harga<=HR[F.harga][1]&&rstat(o).avg>=RT[F.rating]&&(!F.stok||o.stok<=10);
 function drawF(){
  document.getElementById("fgroups").innerHTML=FG.map(([k,t,o])=>`<div class="fg"><strong>${t}</strong><div class="chips">${o.map((x,i)=>`<button class="chip" aria-pressed="${F[k]===i}" data-f="${k}" data-i="${i}">${x}</button>`).join("")}</div></div>`).join("");
  const n=Object.values(F).filter(v=>v).length;
@@ -74,7 +74,7 @@ function drawF(){
 }
 
 // ---------- SORTING ----------
-const keys={hargaA:p=>deref(p).harga,hargaD:p=>-deref(p).harga,nama:p=>deref(p).nama.toLowerCase(),rating:p=>-deref(p).rating};
+const keys={hargaA:p=>deref(p).harga,hargaD:p=>-deref(p).harga,nama:p=>deref(p).nama.toLowerCase(),rating:p=>-rstat(deref(p)).avg};
 const lbl={hargaA:"harga naik",hargaD:"harga turun",nama:"nama A–Z",rating:"rating tertinggi"};
 function runSort(algo,key){
  const L=[],a=[...daftar],k=keys[key];let c=0,s=0;
@@ -119,7 +119,7 @@ function render(){
  document.getElementById("count").textContent=list.length+" Produk";document.getElementById("fshow").textContent="Tunjukkan "+list.length+" Produk";drawF();
  document.getElementById("grid").innerHTML=list.length?list.map(p=>{const o=deref(p);return `<article class="card"><div class="pic" data-k="${o.kat}" data-pd="${p}">${pv(o.emoji,o.nama)}</div><h3 data-pd="${p}">${o.nama}</h3><span class="meta">${o.kat} · ★ ${rlabel(o)}<br>Terjual ${fmtN(o.terjual)} · stok ${o.stok}</span><span class="price">${rp(o.harga)}</span><span class="ptr">ptr ${hex(p)}</span><div class="acts"><button class="btn" data-add="${p}">🛒 Tambah</button><a class="btn alt" target="_blank" rel="noopener" href="${waLink(o)}">💬 Tanya Penjual</a></div></article>`}).join(""):`<div class="empty">Tidak ada produk yang cocok. Hapus kata kunci atau pilih kategori Semua.</div>`;
  document.getElementById("arr").innerHTML=daftar.map((p,i)=>`daftar[${i}] = ${hex(p)}  → ${deref(p).nama}`).join("\n");
- document.getElementById("heap").innerHTML=[...heap].map(([a,o])=>`<tr><td>${hex(a)}</td><td>${o.id}</td><td>${o.nama}</td><td>${o.kat}</td><td>${rp(o.harga)}</td><td>${o.stok}</td><td>${o.rating}</td></tr>`).join("");
+ document.getElementById("heap").innerHTML=[...heap].map(([a,o])=>`<tr><td>${hex(a)}</td><td>${o.id}</td><td>${o.nama}</td><td>${o.kat}</td><td>${rp(o.harga)}</td><td>${o.stok}</td><td>${rstat(o).avg}</td></tr>`).join("");
  renderCart();
 }
 function renderCart(){
@@ -168,7 +168,6 @@ $("theme").onclick=()=>{dipilih=true;setTheme(document.documentElement.dataset.t
 setTheme("light");
 // Kunci tampilan terang: kalau ada yang mengubah tema sebelum pengguna menekan tombol, kembalikan ke terang
 new MutationObserver(()=>{if(!dipilih&&document.documentElement.dataset.theme!=="light")setTheme("light")}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
-render();
 
 // ---------- ULASAN PEMBELI ----------
 // Ulasan awal di bawah ini adalah CONTOH (dibuat otomatis, selalu sama untuk tiap produk). Ulasan dari pembeli sungguhan ditulis lewat formulir
@@ -231,7 +230,7 @@ function rpItems(o,m){const a=[];m.forEach((r,i)=>a.push({i,s:r.s,med:!!(r.media
 function rsumHtml(o,r){
  const cnt=[0,0,0,0,0];rpItems(o,r.m).forEach(x=>cnt[x.s-1]++);
  const bars=[5,4,3,2,1].map(k=>`<div class="revbar"><span>${k} ★</span><i><b style="width:${r.n?Math.round(cnt[k-1]/r.n*100):0}%"></b></i><span>${cnt[k-1]}</span></div>`).join("");
- return r.n?`<div class="revsum"><div class="revbig"><strong>${r.avg.toFixed(1)}</strong><span class="revstars">${bintang(Math.round(r.avg))}</span><span>${r.n} ulasan</span></div><div class="revbars">${bars}</div></div>`:'<p class="meta">Belum ada ulasan untuk produk ini.</p>';
+ return r.n?`<div class="revsum"><div class="revbig"><strong>${r.avg.toFixed(2)}</strong><span class="revstars">${bintang(Math.round(r.avg))}</span><span>${r.n} ulasan</span></div><div class="revbars">${bars}</div></div>`:'<p class="meta">Belum ada ulasan untuk produk ini.</p>';
 }
 // Halaman produk: hanya 3 ulasan pertama; sisanya di halaman ulasan tersendiri
 const REV_PREVIEW=3,RP_PAGE=10;
@@ -356,7 +355,7 @@ function openPD(ptr){pdPtr=ptr;pdQty=1;const o=deref(ptr);
  $("pdprice").textContent=rp(o.harga);paintMeta(o);$("pdq").textContent=1;
  $("pdkat").textContent=o.kat;$("pdstok").textContent=o.stok;$("pdptr").textContent=hex(ptr);
  const sim=[...asli].filter(p=>p!==ptr).sort((x,y)=>(deref(y).kat===o.kat)-(deref(x).kat===o.kat)).slice(0,6);
- $("pdsim").innerHTML=sim.map(p=>{const q=deref(p);return `<article class="scard" data-pd="${p}"><div class="pic" data-k="${q.kat}">${pv(q.emoji,q.nama)}</div><h3>${q.nama}</h3><span class="meta">${q.kat} · ★ ${rstat(q).avg.toFixed(1)} (${rstat(q).n})<br>Terjual ${fmtN(q.terjual)}</span><span class="price">${rp(q.harga)}</span></article>`}).join("");$("pdsim").scrollLeft=0;
+ $("pdsim").innerHTML=sim.map(p=>{const q=deref(p);return `<article class="scard" data-pd="${p}"><div class="pic" data-k="${q.kat}">${pv(q.emoji,q.nama)}</div><h3>${q.nama}</h3><span class="meta">${q.kat} · ★ ${rstat(q).avg.toFixed(2)} (${rstat(q).n})<br>Terjual ${fmtN(q.terjual)}</span><span class="price">${rp(q.harga)}</span></article>`}).join("");$("pdsim").scrollLeft=0;
  try{renderRev(o)}catch(err){console.error("Ulasan gagal dimuat:",err);if($("pdrev"))$("pdrev").innerHTML='<p class="meta">Ulasan gagal dimuat. Muat ulang halaman.</p>'}$("pdask").href=waLink(o);$("pd").classList.add("open");$("pd").scrollTop=0;document.body.style.overflow="hidden"}
 function closePD(){$("pd").classList.remove("open");document.body.style.overflow=""}
 $("grid").addEventListener("click",e=>{const t=e.target.closest("[data-pd]");if(t)openPD(+t.dataset.pd)});
@@ -710,7 +709,7 @@ function shortName(n){n=n.trim().replace(/\s+/g," ");return n.length>10?n.slice(
 (function(){
  // Hanya emoji yang aman tampil di Windows (tanpa kotak kosong)
  const POOL=["🧶","🧸","🐰","🐱","🐻","🐥","🐑","🐼","🐹","🐙","🦄","🐞","🦋","🍓","🍒","🍄","🌸","🌼","🌻","🌈","💖","🎀","🍰","🧁","🐣","🐳","☁️","🧵",
-  "🐶","🐨","🦊","🐷","🐸","🐵","🦆","🐢","🦔","🐬","🐠","🍩","🍭","🍑","🍉","🍪","🍦","🌷","🌺","💕","🎈","🐮","🐯","🦉","🐧","🐝","🐤","🍬"];
+  "🐶","🐨","🦊","🐸","🦆","🐢","🦔","🐬","🐠","🍩","🍭","🍑","🍉","🍪","🍦","🌷","🌺","💕","🎈","🐮","🐯","🦉","🐧","🐝","🐤","🍬"];
  const rnd=(a,b)=>a+Math.random()*(b-a);
  const shuffle=a=>a.slice().sort(()=>Math.random()-.5);
  const MIN=44,MAX=92;                 // ukuran emoji 44–84px, tidak ada yang kecil
@@ -797,3 +796,4 @@ function shortName(n){n=n.trim().replace(/\s+/g," ");return n.length>10?n.slice(
  document.addEventListener("visibilitychange",()=>document.hidden?stop():play());
  go(0);play();
 })();
+render();
